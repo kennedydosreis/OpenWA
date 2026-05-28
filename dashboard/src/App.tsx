@@ -17,6 +17,8 @@ const ApiKeys = lazy(() => import('./pages/ApiKeys').then(m => ({ default: m.Api
 const MessageTester = lazy(() => import('./pages/MessageTester').then(m => ({ default: m.MessageTester })));
 const Infrastructure = lazy(() => import('./pages/Infrastructure').then(m => ({ default: m.Infrastructure })));
 const Plugins = lazy(() => import('./pages/Plugins'));
+const Attendance = lazy(() => import('./pages/Attendance').then(m => ({ default: m.Attendance })));
+const AiProviders = lazy(() => import('./pages/AiProviders'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,7 +108,9 @@ function AppContent() {
             <Route path="logs" element={<Logs />} />
             <Route path="message-tester" element={<MessageTester />} />
             <Route path="infrastructure" element={<Infrastructure />} />
-            {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
+{role === 'admin' && <Route path="plugins" element={<Plugins />} />}
+            <Route path="attendance" element={<Attendance />} />
+            <Route path="ai-providers" element={<AiProviders />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>

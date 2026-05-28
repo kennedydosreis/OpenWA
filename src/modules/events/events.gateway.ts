@@ -239,12 +239,23 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   /**
    * Emit webhook delivery status (broadcast to all - no session context)
    */
-  emitWebhookStatus(webhookId: string, success: boolean, error?: string) {
+emitWebhookStatus(webhookId: string, success: boolean, error?: string) {
     // This one broadcasts to all since webhooks don't have session context in the same way
     this.server.emit('webhook:delivery', {
       webhookId,
       success,
       error,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Emit attendance ticket event (global — all authenticated clients).
+   */
+  emitTicketEvent(event: string, data: unknown) {
+    this.server.emit('ticket:event', {
+      event,
+      data,
       timestamp: new Date().toISOString(),
     });
   }

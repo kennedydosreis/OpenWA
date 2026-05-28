@@ -26,6 +26,10 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { HooksModule } from './core/hooks';
 import { PluginsModule } from './core/plugins';
 import { PluginsApiModule } from './modules/plugins/plugins.module';
+import { AiIntegrationModule } from './modules/ai-integration/ai-integration.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
+import { AttendanceTicket } from './modules/attendance/entities/attendance-ticket.entity';
+import { AiProviderConfig } from './modules/ai-integration/entities/ai-provider-config.entity';
 
 // Only import QueueModule if explicitly enabled to avoid Redis connection errors
 const queueModules: Array<Type | DynamicModule> = [];
@@ -68,9 +72,13 @@ if (process.env.QUEUE_ENABLED === 'true') {
         const dbType = configService.get<'sqlite' | 'postgres'>('dataDatabase.type', 'sqlite');
         const baseConfig = {
           entities: [
+            AttendanceTicket,
+            AiProviderConfig,
             __dirname + '/modules/session/**/*.entity{.ts,.js}',
             __dirname + '/modules/webhook/**/*.entity{.ts,.js}',
             __dirname + '/modules/message/**/*.entity{.ts,.js}',
+            __dirname + '/modules/ai-integration/**/*.entity{.ts,.js}',
+            __dirname + '/modules/attendance/**/*.entity{.ts,.js}',
           ],
           migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
           logging: configService.get<boolean>('dataDatabase.logging', false),
@@ -159,6 +167,14 @@ if (process.env.QUEUE_ENABLED === 'true') {
     StatusModule, // Phase 3: Status/Stories API
     CatalogModule, // Phase 3: Catalog API (WhatsApp Business)
     PluginsApiModule, // Phase 5: Plugins API
+
+    // AI Integration + Attendance (CRM)
+    AttendanceModule,
+    AiIntegrationModule,
   ],
+
+  // Plugin is registered in AiIntegrationModule (not here) to avoid
+  // premature DI resolution before TypeORM forFeature is ready.
+  providers: [],
 })
 export class AppModule {}

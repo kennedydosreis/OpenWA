@@ -265,6 +265,8 @@ export const auditApi = {
 // =============================================================================
 
 export const messageApi = {
+  getMessages: (sessionId: string, chatId: string, limit = 100, offset = 0) =>
+    request<{ messages: Message[]; total: number }>(`/sessions/${sessionId}/messages?chatId=${encodeURIComponent(chatId)}&limit=${limit}&offset=${offset}`),
   sendText: (sessionId: string, chatId: string, text: string) =>
     request<MessageResponse>(`/sessions/${sessionId}/messages/send-text`, {
       method: 'POST',
@@ -291,6 +293,21 @@ export const messageApi = {
       body: JSON.stringify({ chatId, url, filename }),
     }),
 };
+
+export interface Message {
+  id: string;
+  sessionId: string;
+  waMessageId?: string | null;
+  chatId: string;
+  from: string;
+  to: string;
+  body: string;
+  type: string;
+  direction: 'incoming' | 'outgoing';
+  timestamp?: number | null;
+  status: string;
+  createdAt: string;
+}
 
 // =============================================================================
 // Health & Infrastructure API
@@ -389,5 +406,97 @@ export const pluginsApi = {
     }),
   healthCheck: (id: string) => request<{ healthy: boolean; message?: string }>(`/plugins/${id}/health`),
   getEngines: () => request<Engine[]>('/infra/engines'),
-  getCurrentEngine: () => request<{ engineType: string }>('/infra/engines/current'),
+getCurrentEngine: () => request<{ engineType: string }>('/infra/engines/current'),
+};
+
+// =============================================================================
+// AI Integration API
+// =============================================================================
+
+export interface AiProviderConfig {
+  id: string;
+  sessionId: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  enabled: boolean;
+  extraHeaders?: Record<string, string> | null;
+  extraBody?: Record<string, unknown> | null;
+  timeoutMs: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TestConnectionResult {
+  success: boolean;
+  statusCode?: number;
+  elapsedMs?: number;
+  hasContent?: boolean;
+  contentPreview?: string;
+  health?: Record<string, unknown>;
+  error?: string;
+  errorBody?: string;
+}
+
+export const aiIntegrationApi = {
+  listConfigs: () => request<AiProviderConfig[]>('/ai-integration/configs'),
+  getConfig: (sessionId: string) => request<AiProviderConfig | null>(`/ai-integration/${sessionId}/config`),
+  upsertConfig: (sessionId: string, config: Omit<AiProviderConfig, 'id' | 'createdAt' | 'updatedAt'>) =>
+    request<AiProviderConfig>(`/ai-integration/${sessionId}/config`, {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    }),
+  deleteConfig: (sessionId: string) =>
+    request<void>(`/ai-integration/${sessionId}/config`, { method: 'DELETE' }),
+  testConnection: (sessionId: string) =>
+    request<TestConnectionResult>(`/ai-integration/${sessionId}/test`, { method: 'POST' }),
+};
+
+// =============================================================================
+// Attendance API
+// =============================================================================
+
+export interface AttendanceTicket {
+  id: string;
+  csSessionId: string;
+  chatId: string;
+  sessionId: string;
+  customerPhone: string;
+  customerName?: string | null;
+  priority: 'baixa' | 'media' | 'alta' | 'urgente';
+  queue: 'emprestimo' | 'cab-geral';
+  status: 'waiting' | 'in_progress' | 'resolved';
+  assignedTo?: string | null;
+  lastMessage?: string | null;
+  csPayload?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string | null;
+}
+
+export const attendanceApi = {
+  listTickets: (filters?: { queue?: string; status?: string; priority?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.queue) params.set('queue', filters.queue);
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.priority) params.set('priority', filters.priority);
+    const qs = params.toString();
+    return request<AttendanceTicket[]>(`/attendance/tickets${qs ? `?${qs}` : ''}`);
+  },
+  getTicket: (id: string) => request<AttendanceTicket>(`/attendance/tickets/${id}`),
+  assign: (id: string, assignedTo: string) =>
+    request<AttendanceTicket>(`/attendance/tickets/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assignedTo }),
+    }),
+  resolve: (id: string) =>
+    request<AttendanceTicket>(`/attendance/tickets/${id}/resolve`, { method: 'POST' }),
+  getTicketMessages: (id: string) =>
+    request<{
+      ticketId: string;
+      csSessionId: string;
+      chatId: string;
+      sessionId: string;
+    }>(`/attendance/tickets/${id}/messages`),
 };
